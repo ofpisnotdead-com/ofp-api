@@ -38,8 +38,10 @@ end
 
 class App
   HEADERS = {
-    'Access-Control-Allow-Origin' => '*'
+    'Access-Control-Allow-Origin' => '*',
+    'Content-Type' => 'application/json'
   }
+
   def call(env)
     path = env["PATH_INFO"].delete('/')
     ip, port = path.split(':')
@@ -50,8 +52,8 @@ class App
 
     [200, HEADERS, [result.to_json]]
   rescue IPAddr::InvalidAddressError, ArgumentError
-    [400, HEADERS, ["invalid address"]]
+    [400, HEADERS, [{'error' => 'invalid address'}.to_json]]
   rescue Timeout::Error
-    [408, HEADERS, ["timeout"]]
+    [400, HEADERS, [{'error' => 'timeout'}.to_json]]
   end
 end
