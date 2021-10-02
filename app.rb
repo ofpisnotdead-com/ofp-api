@@ -13,7 +13,7 @@ def query_server(ip, port)
   data = nil
   # TODO: check if all data are received
   bench = Benchmark.measure do
-    Timeout::timeout(5) do
+    Timeout::timeout(2) do
       data, _ = socket.recvfrom(4096)
     end
   end
