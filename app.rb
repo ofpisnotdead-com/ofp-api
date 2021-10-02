@@ -18,6 +18,9 @@ def query_server(ip, port)
     end
   end
 
+  # encode strange player/server names
+  data = data.encode('utf-8', invalid: :replace, undef: :replace)
+
   data = data.split("\\")
   data.delete_at(0)
   raw_data = data[0..data.index("final")-1].each_slice(2).to_a.to_h
@@ -55,5 +58,7 @@ class App
     [400, HEADERS, [{'error' => 'invalid address'}.to_json]]
   rescue Timeout::Error
     [400, HEADERS, [{'error' => 'timeout'}.to_json]]
+  rescue StandardError
+    [500, HEADERS, [{'error' => 'server error'}.to_json]]
   end
 end
