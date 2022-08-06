@@ -4,6 +4,7 @@ require 'ipaddr'
 require 'socket'
 require 'benchmark'
 require 'timeout'
+require 'resolv'
 
 def query_server(ip, port)
   socket = UDPSocket.new
@@ -48,13 +49,14 @@ class App
   def call(env)
     path = env["PATH_INFO"].delete('/')
     ip, port = path.split(':')
+  p ip = Resolv.getaddress(ip)
     address = IPAddr.new(ip)
     port = Integer(port) + 1
 
     result = query_server(ip, port)
 
     [200, HEADERS, [result.to_json]]
-  rescue IPAddr::InvalidAddressError, ArgumentError
+  rescue IPAddr::InvalidAddressError, ArgumentError, Resolv::ResolvError
     [400, HEADERS, [{'error' => 'invalid address'}.to_json]]
   rescue Timeout::Error
     [400, HEADERS, [{'error' => 'timeout'}.to_json]]
