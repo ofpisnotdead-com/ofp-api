@@ -1,4 +1,5 @@
 require 'rack'
+require 'cgi'
 require 'json'
 require 'ipaddr'
 require 'socket'
@@ -6,7 +7,9 @@ require 'benchmark'
 require 'timeout'
 require 'resolv'
 
-def query_server(ip, port)
+TIMEOUT_LIMIT = (0.1 .. 5)
+
+def query_server(ip, port, timeout)
   socket = UDPSocket.new
   socket.connect(ip, port)
   socket.send("\\status\\", 0)
@@ -14,7 +17,7 @@ def query_server(ip, port)
   data = nil
   # TODO: check if all data are received
   bench = Benchmark.measure do
-    Timeout::timeout(2) do
+    Timeout::timeout(timeout) do
       data, _ = socket.recvfrom(4096)
     end
   end
@@ -47,13 +50,24 @@ class App
   }
 
   def call(env)
+    query = CGI.parse(env["QUERY_STRING"])
+    timeout = 2
+
+    if query["timeout"]  and query["timeout"].is_a?(Array)
+      new_timeout = query["timeout"].first.to_f
+
+      if TIMEOUT_LIMIT.include?(new_timeout)
+        timeout = new_timeout
+      end
+    end
+
     path = env["PATH_INFO"].delete('/')
     ip, port = path.split(':')
-  p ip = Resolv.getaddress(ip)
+    ip = Resolv.getaddress(ip)
     address = IPAddr.new(ip)
     port = Integer(port) + 1
 
-    result = query_server(ip, port)
+    result = query_server(ip, port, timeout)
 
     [200, HEADERS, [result.to_json]]
   rescue IPAddr::InvalidAddressError, ArgumentError, Resolv::ResolvError
